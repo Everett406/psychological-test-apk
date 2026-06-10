@@ -58,3 +58,4 @@ psychological_test/
 ## 版本历史
 
 - v1.0.0 - 初始版本，基础心理测评功能
+- v1.0.1 - 修复 GitHub Actions 权限配置
