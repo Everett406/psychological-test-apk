@@ -1,0 +1,15 @@
+{
+  "name": "psychological-test-apk",
+  "version": "1.0.0",
+  "description": "心理韧性深度测评 - Android APK",
+  "scripts": {
+    "build": "npx cap sync android && cd android && ./gradlew assembleDebug",
+    "sync": "npx cap sync android",
+    "open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  }
+}
