@@ -1,0 +1,16 @@
+{
+  "appId": "com.psychotest.app",
+  "appName": "心理韧性测评",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "buildOptions": {
+      "keystorePath": "",
+      "keystoreAlias": "",
+      "keystorePassword": "",
+      "keystoreAliasPassword": ""
+    }
+  }
+}
