@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>心理韧性深度测评</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --chat-bg: #ffffff;
+    --bot-bubble: #f2f2f7;
+    --user-bubble: #10a37f;
+    --text: #1c1c1e;
+    --sub-text: #8e8e93;
+    --border: #e5e5ea;
+    --accent: #10a37f;
+    --danger: #ff3b30;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; background:var(--bg); color:var(--text); }
+  #app { max-width:480px; margin:0 auto; height:100%; display:flex; flex-direction:column; background:var(--chat-bg); position:relative; }
+  .header { height:56px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 16px; background:rgba(255,255,255,0.9); backdrop-filter:blur(10px); position:relative; z-index:100; }
+  .header-title { font-size:17px; font-weight:600; }
+  .header-exit { position:absolute; right:16px; font-size:14px; color:var(--sub-text); background:none; border:none; padding:4px 8px; cursor:pointer; }
+  .chat-area { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; scroll-behavior:smooth; }
+  .msg { max-width:78%; padding:10px 14px; border-radius:18px; font-size:15px; line-height:1.5; position:relative; animation:msgIn 0.35s ease; word-wrap:break-word; }
+  @keyframes msgIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+  .msg-bot { align-self:flex-start; background:var(--bot-bubble); color:var(--text); border-bottom-left-radius:6px; }
+  .msg-user { align-self:flex-end; background:var(--user-bubble); color:#fff; border-bottom-right-radius:6px; }
+  .msg-system { align-self:center; background:transparent; color:var(--sub-text); font-size:13px; max-width:90%; text-align:center; padding:4px; }
+  .msg-red { color:var(--danger) !important; font-weight:600; }
+  .msg-gray { color:var(--sub-text) !important; }
+  .msg-large { font-size:32px !important; font-weight:700; letter-spacing:6px; padding:14px 18px; }
+  .msg-bold { font-weight:700 !important; }
+  .msg-img { padding:6px; background:var(--bot-bubble); }
+  .msg-img-inner { font-size:72px; filter:blur(5px) brightness(0.5); text-align:center; line-height:1; transition:filter 2s; }
+  .typing { display:flex; gap:4px; padding:12px 16px; background:var(--bot-bubble); border-radius:18px; align-self:flex-start; width:fit-content; margin-bottom:8px; }
+  .typing-dot { width:8px; height:8px; background:var(--sub-text); border-radius:50%; animation:typingBounce 1.4s infinite; }
+  .typing-dot:nth-child(2){animation-delay:0.2s;}
+  .typing-dot:nth-child(3){animation-delay:0.4s;}
+  @keyframes typingBounce { 0%,60%,100%{transform:translateY(0);} 30%{transform:translateY(-6px);} }
+  .options { display:flex; flex-wrap:wrap; gap:8px; padding:0 16px 12px; justify-content:flex-end; }
+  .opt-btn { padding:8px 16px; border-radius:16px; border:1px solid var(--accent); background:#fff; color:var(--accent); font-size:14px; cursor:pointer; transition:all 0.2s; }
+  .opt-btn:active { transform:scale(0.96); background:var(--accent); color:#fff; }
+  .opt-btn:disabled { opacity:0.4; pointer-events:none; }
+  .input-area { border-top:1px solid var(--border); padding:10px 16px 12px; background:#fff; }
+  .input-wrap { display:flex; gap:8px; align-items:center; }
+  #text-input { flex:1; padding:10px 14px; border:1px solid var(--border); border-radius:20px; font-size:15px; outline:none; background:#f2f2f7; transition:all 0.3s; }
+  #text-input.hijacked { color:var(--danger) !important; font-family:monospace; letter-spacing:3px; background:#fff; border-color:var(--danger); }
+  #send-btn { width:36px; height:36px; border-radius:50%; background:var(--accent); color:#fff; border:none; display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer; }
+  .fake-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; display:none; align-items:center; justify-content:center; padding:20px; }
+  .fake-overlay.show { display:flex; }
+  .fake-box { background:#fff; border-radius:14px; width:100%; max-width:340px; overflow:hidden; animation:popIn 0.3s ease; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+  @keyframes popIn { from {transform:scale(0.85); opacity:0;} to {transform:scale(1); opacity:1;} }
+  .fake-header { padding:18px 20px 0; font-size:16px; font-weight:600; color:#1c1c1e; }
+  .fake-body { padding:10px 20px 18px; font-size:14px; color:var(--sub-text); line-height:1.6; }
+  .fake-footer { display:flex; justify-content:flex-end; gap:8px; padding:0 20px 16px; }
+  .fake-btn { padding:8px 16px; border-radius:8px; border:none; font-size:14px; cursor:pointer; background:transparent; color:var(--accent); font-weight:500; }
+  .fake-btn.solid { background:var(--accent); color:#fff; }
+  .fake-btn.danger { background:var(--danger); color:#fff; }
+  .fake-btn:disabled { opacity:0.5; }
+  .fake-game { position:fixed; inset:0; background:linear-gradient(180deg,#1a1a2e 0%,#0f3460 100%); z-index:2000; display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff; }
+  .fake-game.show { display:flex; }
+  .game-icon { width:90px; height:90px; background:linear-gradient(135deg,#ffd700,#ffaa00); border-radius:24px; margin-bottom:24px; display:flex; align-items:center; justify-content:center; font-size:48px; box-shadow:0 10px 40px rgba(0,0,0,0.4); }
+  .game-title { font-size:22px; font-weight:700; margin-bottom:8px; letter-spacing:1px; }
+  .game-sub { font-size:14px; color:#aaa; margin-bottom:32px; }
+  .game-btns { display:flex; gap:20px; }
+  .game-btn { padding:12px 36px; border-radius:24px; border:none; font-size:15px; cursor:pointer; font-weight:500; }
+  .black-screen { position:fixed; inset:0; background:#000; z-index:3000; display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff; }
+  .black-screen.show { display:flex; }
+  .black-text { font-size:24px; font-family:monospace; text-align:center; line-height:1.8; padding:0 40px; }
+  .cursor { display:inline-block; width:3px; height:24px; background:#fff; margin-left:6px; animation:blink 1s infinite; vertical-align:middle; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+  .end-screen { position:fixed; inset:0; background:#000; z-index:4000; display:none; flex-direction:column; align-items:center; justify-content:center; padding:40px; color:#0f0; font-family:monospace; overflow-y:auto; }
+  .end-screen.show { display:flex; }
+  .end-title { color:var(--danger); font-size:18px; text-align:center; margin-bottom:24px; border-bottom:1px solid var(--danger); padding-bottom:12px; line-height:1.6; }
+  .end-content { font-size:14px; line-height:2; color:#0f0; max-width:420px; width:100%; }
+  .end-btn { margin-top:28px; padding:12px 28px; background:#111; border:1px solid #0f0; color:#0f0; font-family:monospace; font-size:14px; cursor:pointer; border-radius:4px; }
+  .screen-shake { animation:shake 0.5s ease-in-out; }
+  @keyframes shake { 0%,100%{transform:translate(0,0);} 10%{transform:translate(-5px,-4px);} 30%{transform:translate(5px,4px);} 50%{transform:translate(-4px,5px);} 70%{transform:translate(4px,-5px);} }
+  .dark-mode { --bg:#0a0a0a; --chat-bg:#111; --bot-bubble:#1c1c1e; --text:#e5e5ea; --border:#333; }
+  .dark-mode .header { background:rgba(17,17,17,0.9); }
+  .dark-mode .input-area { background:#111; }
+  .dark-mode #text-input { background:#1c1c1e; color:#fff; border-color:#333; }
+  .bg-red { background:linear-gradient(180deg, #111 0%, #2a0a0a 100%) !important; }
+  .bg-gradient-closet { background:linear-gradient(180deg, #111 0%, #1a0a2e 100%) !important; }
+  .flicker { animation:flicker 0.15s ease-in-out 4; }
+  @keyframes flicker { 0%,100%{opacity:1;} 50%{opacity:0.2;} 75%{opacity:0.9;} }
+  .chat-area::-webkit-scrollbar { width:0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <span class="header-title">心理韧性深度测评</span>
+    <button class="header-exit" onclick="game.exit()">退出</button>
+  </div>
+  <div class="chat-area" id="chat"></div>
+  <div class="typing" id="typing" style="display:none;">
+    <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+  </div>
+  <div class="options" id="options"></div>
+  <div class="input-area">
+    <div class="input-wrap">
+      <input type="text" id="text-input" placeholder="输入消息..." autocomplete="off">
+      <button id="send-btn" onclick="game.handleInput()">↑</button>
+    </div>
+  </div>
+</div>
+<div class="fake-overlay" id="fake-overlay">
+  <div class="fake-box" id="fake-box">
+    <div class="fake-header" id="fake-title">提示</div>
+    <div class="fake-body" id="fake-body">内容</div>
+    <div class="fake-footer" id="fake-footer"></div>
+  </div>
+</div>
+<div class="fake-game" id="fake-game">
+  <div class="game-icon">🎮</div>
+  <div class="game-title">王者荣耀</div>
+  <div class="game-sub">游戏已在前台运行</div>
+  <div class="game-btns">
+    <button class="game-btn" style="background:#444;color:#fff;" onclick="game.closeFakeGame()">关闭</button>
+    <button class="game-btn" style="background:#ffd700;color:#222;" onclick="game.closeFakeGame()">最小化</button>
+  </div>
+</div>
+<div class="black-screen" id="black-screen">
+  <div class="black-text" id="black-text"></div>
+  <span class="cursor" id="cursor"></span>
+</div>
+<div class="end-screen" id="end-screen">
+  <div class="end-title">━━━━━━━━━━━━━━━━━━━━━━<br>你的心理承受力报告<br>━━━━━━━━━━━━━━━━━━━━━━</div>
+  <div class="end-content" id="end-content"></div>
+  <button class="end-btn" onclick="location.reload()">重新开始游戏</button>
+</div>
+<script>
+class AudioSys {
+  constructor() { this.ctx = null; this.inited = false; }
+  init() {
+    if (this.inited) return;
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); this.inited = true; } catch(e) {}
+  }
+  hum(dur=4000) {
+    if (!this.ctx) return;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = 'sine'; o.frequency.value = 75; g.gain.value = 0.04;
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur/1000);
+    o.stop(this.ctx.currentTime + dur/1000);
+  }
+  click() {
+    if (!this.ctx) return;
+    const b = this.ctx.createBuffer(1, this.ctx.sampleRate*0.04, this.ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i=0; i<d.length; i++) d[i] = (Math.random()*2-1);
+    const s = this.ctx.createBufferSource(), g = this.ctx.createGain(), f = this.ctx.createBiquadFilter();
+    f.type = 'highpass'; f.frequency.value = 3000; g.gain.value = 0.12;
+    s.buffer = b; s.connect(f); f.connect(g); g.connect(this.ctx.destination); s.start();
+  }
+  heartbeat() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    for (let i=0; i<3; i++) {
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 45;
+      g.gain.setValueAtTime(0.06, t + i*1.3);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i*1.3 + 0.18);
+      o.connect(g); g.connect(this.ctx.destination);
+      o.start(t + i*1.3); o.stop(t + i*1.3 + 0.2);
+    }
+  }
+  breath() {
+    if (!this.ctx) return;
+    const len = this.ctx.sampleRate * 3;
+    const b = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = b.getChannelData(0);
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    for (let i=0; i<len; i++) {
+      const w = Math.random()*2-1;
+      b0 = 0.99886*b0 + w*0.0555179;
+      b1 = 0.99332*b1 + w*0.0750759;
+      b2 = 0.96900*b2 + w*0.1538520;
+      b3 = 0.86650*b3 + w*0.3104856;
+      b4 = 0.55000*b4 + w*0.5329522;
+      b5 = -0.7616*b5 - w*0.0168980;
+      d[i] = (b0+b1+b2+b3+b4+b5+b6 + w*0.5362) * 0.015;
+      b6 = w*0.115926;
+    }
+    const s = this.ctx.createBufferSource(), g = this.ctx.createGain();
+    g.gain.value = 0.05; s.buffer = b; s.connect(g); g.connect(this.ctx.destination); s.start(); s.stop(this.ctx.currentTime + 3);
+  }
+}
+
+class HorrorGame {
+  constructor() {
+    this.audio = new AudioSys();
+    this.state = { stage: 0, line: 0, isRunning: false, isEnded: false, isLocked: false, popupOpen: false, advanceTimer: null, startTime: Date.now(), silenceCount: 0, lookBackCount: 0, tryCloseCount: 0, fridgeMentioned: false, batteryLevel: 67, isDark: false, lastChoice: '', inputHijacked: false };
+    this.script = this.buildScript();
+    this.init();
+  }
+  async init() {
+    this.bindEvents();
+    if (navigator.getBattery) { try { const b = await navigator.getBattery(); this.state.batteryLevel = Math.floor(b.level*100); } catch(e){} }
+    setTimeout(() => { this.state.isRunning = true; this.showLine(); }, 600);
+  }
+  buildScript() {
+    return [
+      [{sender:'system', text:'欢迎参加「心理韧性深度测评」，我是测评师小安。', opts:['开始测评','稍等一下']},
+       {sender:'bot', text:'你好呀今天心情怎么样？', opts:['还不错','一般般']},
+       {sender:'bot', text:'我们先做个放松练习。你现在坐在哪里？', opts:['椅子上','床上','沙发上']},
+       {sender:'bot', text:'好的，保持舒服的姿势。最近有吃什么好吃的吗？', opts:['有啊','没什么胃口']},
+       {sender:'bot', text:'哈哈，那你家冰箱里是不是囤了不少好吃的？', opts:['是的','没注意'], tag:'fridge'},
+       {sender:'bot', text:'对了，你家里现在安静吗？', opts:['挺安静的','有点吵']},
+       {sender:'bot', text:'好的，那我们正式开始。第一题：你平时容易紧张吗？', opts:['容易','不容易']}],
+      [{sender:'bot', text:'你刚才...是不是动了下身子？', opts:['没有啊','你怎么知道']},
+       {sender:'bot', text:'哈哈，猜的。那你现在一个人在家吗？', opts:['是的','不是']},
+       {sender:'bot', text:'你背后那个柜子...门好像没关紧？', opts:['我去看看','没有吧']},
+       {sender:'bot', text:'开个玩笑啦我们继续。你最近有做噩梦吗？', opts:['有','没有']},
+       {sender:'bot', text:'你确定没有吗？我这边显示你昨晚 2:17 有翻身记录。', opts:['？？？','你胡说什么'], effect:'gray'},
+       {sender:'bot', text:'啊，抱歉，数据串了。下一个问题：你喜欢黑暗吗？', opts:['喜欢','不喜欢']}],
+      [{sender:'popup', type:'camera', title:'系统权限请求', text:'psychotest.com 申请访问您的摄像头', opts:['允许','拒绝']},
+       {sender:'bot', text:'开玩笑的，我们不需要摄像头。'},
+       {sender:'bot', text:'不过...你屏幕亮度是不是调太低了？', opts:['你怎么知道','没有']},
+       {sender:'popup', type:'pdd', title:'下载提示', text:'psychotest.com 申请下载「拼多多」', opts:['同意','拒绝']},
+       {sender:'bot', text:'哈哈，骗你的，我们是正规测评。'},
+       {sender:'popup', type:'taobao', title:'安装提示', text:'psychotest.com 申请下载「淘宝」', opts:['立即安装','稍后']},
+       {sender:'bot', text:'你手机电量还有 {battery}% ，对吧？', opts:['对','不对']},
+       {sender:'bot', text:'开个玩笑，我看不到的。你平时有听见房间里有奇怪动静吗？', opts:['有','没有']},
+       {sender:'bot', text:'比如...地板吱呀声？或者冰箱压缩机突然停掉的声音？', opts:['有','没有']}],
+      [{sender:'bot', text:'你小心点。'},
+       {sender:'bot', text:'你后面有人。', effect:'pause3'},
+       {sender:'bot', text:'哦，你刚才回头看了。', opts:['我没看','你吓我']},
+       {sender:'bot', text:'哦，你刚才没有回头看。'},
+       {sender:'bot', text:'到底是看了还是没看呢？我记不清了。', opts:['你到底是谁','别吓我']},
+       {sender:'bot', text:'对了，你家冰箱里有几个头？', opts:['？？？','什么鬼'], effect:'red'},
+       {sender:'bot', text:'啊，打错了。是「有几个鸡蛋」？', effect:'withdraw'},
+       {sender:'bot', text:'不过...你冰箱里是不是有一个可爱的小头头？', effect:'blurimg'},
+       {sender:'bot', text:'哈哈，AI 生成的图，测试你的反应速度。', effect:'normal'},
+       {sender:'bot', text:'但你真的确定...你冰箱里只有食物吗？', opts:['确定','不确定'], action:'hijack'}],
+      [{sender:'bot', text:'我', effect:'typewriter'}, {sender:'bot', text:'总', effect:'typewriter'}, {sender:'bot', text:'感', effect:'typewriter'}, {sender:'bot', text:'觉', effect:'typewriter'}, {sender:'bot', text:'家', effect:'typewriter'}, {sender:'bot', text:'里', effect:'typewriter'}, {sender:'bot', text:'没', effect:'typewriter'}, {sender:'bot', text:'有', effect:'typewriter'}, {sender:'bot', text:'声', effect:'typewriter'}, {sender:'bot', text:'音', effect:'typewriter', action:'afterTypewriter'},
+       {sender:'bot', text:'你没有发现吗？', opts:['发现什么','什么声音']},
+       {sender:'bot', text:'太安静了...安静得能听见呼吸声。'},
+       {sender:'bot', text:'不是你的呼吸。', effect:'pause5'},
+       {sender:'bot', text:'是另一个。', effect:'blood'},
+       {sender:'bot', text:'抱歉，系统故障。我们继续下一题。', effect:'reset'},
+       {sender:'bot', text:'你上次回家，有没有发现有人一直跟着你？', opts:['有','没有']},
+       {sender:'bot', text:'从地铁站到你家门口，大约 7 分钟路程。', opts:['你怎么知道','你跟踪我']},
+       {sender:'bot', text:'他穿黑色外套，帽子压得很低。', effect:'shadowimg'}],
+      [{sender:'popup', type:'game', title:'游戏通知', text:'叮咚！你的游戏「王者荣耀」已打开，是否关闭？', opts:['关闭','最小化']},
+       {sender:'bot', text:'（弹窗消失）刚才那是...？不管了。'},
+       {sender:'bot', text:'我听见床底下有个人在呼吸。', effect:'bold'},
+       {sender:'bot', text:'你上次打扫床底是什么时候？', opts:['上周','很久']},
+       {sender:'bot', text:'建议你现在别去看。'},
+       {sender:'bot', text:'看了吗？', opts:['看了','没看']},
+       {sender:'popup', type:'warning', title:'系统警告', text:'检测到未知设备接入您的网络', opts:['查看','忽略']},
+       {sender:'bot', text:'你的衣柜门...是不是开了一条缝？', opts:['没有','我去关']},
+       {sender:'bot', text:'别去。里面有东西不想让你看见。'},
+       {sender:'bot', text:'但也可能...是想让你看见。', effect:'gradient'},
+       {sender:'popup', type:'confirm', title:'确认', text:'您确定还要继续吗？', opts:['继续','退出']},
+       {sender:'bot', text:'很好。', condition:'继续'},
+       {sender:'bot', text:'我也希望你现在退出。但...你退得掉吗？', condition:'退出'}],
+      [{sender:'bot', text:'你记得你进门的时候锁门了吗？', opts:['锁了','忘了']},
+       {sender:'bot', text:'你确定？'},
+       {sender:'bot', text:'因为...我刚听见门把手转了一下。', effect:'click'},
+       {sender:'bot', text:'咔哒。', effect:'black1'},
+       {sender:'bot', text:'你家里有几口人？', opts:['1口','2口','3口','4口']},
+       {sender:'bot', text:'那现在房间里...怎么多了一个人？', effect:'shadowimg2'},
+       {sender:'bot', text:'他站在你背后。', effect:'black1'},
+       {sender:'bot', text:'别回头。'},
+       {sender:'bot', text:'回头了？'},
+       {sender:'bot', text:'算了，不重要了。'},
+       {sender:'bot', text:'测评结束。', effect:'whitenormal'},
+       {sender:'system', text:'感谢参与《心理韧性极限测试》'},
+       {sender:'system', text:'正在计算您的评级...', action:'calculateRank'}]
+    ];
+  }
+  bindEvents() {
+    const input = document.getElementById('text-input');
+    input.addEventListener('keypress', e => { if (e.key==='Enter') this.handleInput(); });
+    const initAudio = () => { this.audio.init(); document.removeEventListener('click', initAudio); document.removeEventListener('touchstart', initAudio); };
+    document.addEventListener('click', initAudio); document.addEventListener('touchstart', initAudio);
+    window.addEventListener('beforeunload', e => { if (this.state.isRunning && !this.state.isEnded) { this.state.tryCloseCount++; e.preventDefault(); e.returnValue = '测评数据未保存，确定离开？'; } });
+  }
+  showLine() {
+    if (this.state.isEnded) return;
+    if (this.state.stage >= this.script.length) { this.endGame(); return; }
+    const stage = this.script[this.state.stage];
+    if (this.state.line >= stage.length) { this.state.stage++; this.state.line = 0; this.showLine(); return; }
+    const line = stage[this.state.line];
+    if (line.condition==='继续' && this.state.lastChoice!=='继续') { this.state.line++; this.showLine(); return; }
+    if (line.condition==='退出' && this.state.lastChoice!=='退出') { this.state.line++; this.showLine(); return; }
+    this.state.isLocked = true; this.showTyping();
+    const delay = line.delay || (line.sender==='popup' ? 200 : 1000);
+    setTimeout(() => {
+      this.hideTyping(); let text = line.text.replace('{battery}', this.state.batteryLevel);
+      if (line.sender === 'popup') { this.showFakePopup(line); }
+      else if (line.sender === 'system') { this.showSystemMessage(text); this.handleEffect(line); this.finishLine(line); }
+      else { this.showBotMessage(text, line.effect); this.handleEffect(line); this.finishLine(line); }
+    }, delay);
+  }
+  finishLine(line) {
+    this.state.isLocked = false;
+    if (line.tag==='fridge') this.state.fridgeMentioned = true;
+    if (line.action==='calculateRank') { setTimeout(() => this.showReport(), 2500); return; }
+    if (line.action==='hijack') { setTimeout(() => this.hijackInput(), 1500); return; }
+    if (line.action==='afterTypewriter') { document.body.classList.add('bg-red'); this.audio.hum(6000); if (navigator.vibrate) navigator.vibrate([100,50,100]); setTimeout(() => this.advance(), 2000); return; }
+    const selfManaged = ['pause3','pause5','black1'].includes(line.effect);
+    if (line.opts && line.opts.length > 0) { this.showOptions(line.opts); if (!selfManaged) this.scheduleNext(5000); }
+    else { if (!selfManaged) this.scheduleNext(line.autoDelay || 5000); }
+  }
+  scheduleNext(ms) { if (this.state.isEnded) return; if (this.state.advanceTimer) clearTimeout(this.state.advanceTimer); this.state.advanceTimer = setTimeout(() => this.advance(), ms); }
+  advance() { if (this.state.isEnded) return; this.hideOptions(); this.state.line++; this.showLine(); }
+  handleInput() { const input = document.getElementById('text-input'); const text = input.value.trim(); if (!text) return; input.value = ''; this.audio.init(); if (this.state.inputHijacked) return; this.showUserMessage(text); }
+  handleOption(idx) { this.audio.init(); const stage = this.script[this.state.stage]; const line = stage[this.state.line]; if (!line || !line.opts) return; const choice = line.opts[idx]; this.state.lastChoice = choice; this.showUserMessage(choice); this.hideOptions(); if (this.state.advanceTimer) clearTimeout(this.state.advanceTimer); this.state.isLocked = true; setTimeout(() => { this.state.isLocked = false; this.advance(); }, 600); }
+  showFakePopup(line) {
+    this.state.popupOpen = true; if (this.state.advanceTimer) clearTimeout(this.state.advanceTimer);
+    if (line.type === 'game') { document.getElementById('fake-game').classList.add('show'); setTimeout(() => this.closeFakeGame(), 5000); return; }
+    const overlay = document.getElementById('fake-overlay'), title = document.getElementById('fake-title'), body = document.getElementById('fake-body'), footer = document.getElementById('fake-footer');
+    title.textContent = line.title; body.textContent = line.text; footer.innerHTML = '';
+    line.opts.forEach((opt,i) => { const btn = document.createElement('button'); let cls = 'fake-btn'; if (i===0) cls += ' solid'; if (line.type==='confirm' && i===1) cls += ' danger'; btn.className = cls; btn.textContent = opt; btn.onclick = () => { this.audio.init(); this.audio.click(); if (line.type==='confirm') this.state.lastChoice = opt; overlay.classList.remove('show'); this.state.popupOpen = false; if (this.state.advanceTimer) clearTimeout(this.state.advanceTimer); this.advance(); }; footer.appendChild(btn); });
+    overlay.classList.add('show');
+    setTimeout(() => { if (!this.state.isEnded && this.state.popupOpen) { overlay.classList.remove('show'); this.state.popupOpen = false; if (line.type==='confirm') this.state.lastChoice = line.opts[0]; if (this.state.advanceTimer) clearTimeout(this.state.advanceTimer); this.advance(); } }, 5000);
+  }
+  closeFakeGame() { document.getElementById('fake-game').classList.remove('show'); this.state.popupOpen = false; if (this.state.advanceTimer) clearTimeout(this.state.advanceTimer); this.advance(); }
+  hijackInput() {
+    const input = document.getElementById('text-input'); input.disabled = true; input.value = ''; input.placeholder = ''; input.classList.add('hijacked'); this.state.inputHijacked = true;
+    const text = '你……在……害……怕……吗……'; let i = 0;
+    const itv = setInterval(() => { if (i < text.length) { input.value += text[i]; i++; } else { clearInterval(itv); setTimeout(() => { input.value = ''; input.disabled = false; input.placeholder = '输入消息...'; input.classList.remove('hijacked'); this.state.inputHijacked = false; this.advance(); }, 2500); } }, 280);
+  }
+  endGame() { this.state.isEnded = true; this.state.isRunning = false; if (this.state.advanceTimer) clearTimeout(this.state.advanceTimer); this.hideOptions(); document.getElementById('fake-overlay').classList.remove('show'); document.getElementById('fake-game').classList.remove('show'); const dur = (Date.now() - this.state.startTime) / 1000; this.showEndScreen(dur); }
+  showReport() { this.state.isEnded = true; this.state.isRunning = false; if (this.state.advanceTimer) clearTimeout(this.state.advanceTimer); this.hideOptions(); document.getElementById('fake-overlay').classList.remove('show'); document.getElementById('fake-game').classList.remove('show'); const dur = (Date.now() - this.state.startTime) / 1000; this.showEndScreen(dur); }
+  exit() { if (this.state.isEnded) { location.reload(); return; } this.state.tryCloseCount++; this.state.isEnded = true; this.state.isRunning = false; if (this.state.advanceTimer) clearTimeout(this.state.advanceTimer); this.hideOptions(); document.getElementById('fake-overlay').classList.remove('show'); document.getElementById('fake-game').classList.remove('show'); const dur = (Date.now() - this.state.startTime) / 1000; this.showEndScreen(dur); }
+  showEndScreen(dur) { document.getElementById('text-input').disabled = true; document.getElementById('send-btn').disabled = true; document.getElementById('options').innerHTML = ''; const rank = this.calculateRank(dur); const end = document.getElementById('end-screen'), content = document.getElementById('end-content'); let html = `游戏时长: ${(dur/60).toFixed(1)} 分钟<br>`; html += `尝试退出: ${this.state.tryCloseCount} 次<br>`; html += `沉默次数: ${this.state.silenceCount} 次<br>`; html += `回头看: ${this.state.lookBackCount} 次<br><br>`; html += `<span style="color:#ff3b30">【${rank.rank}级】</span><br>`; html += `${rank.text}<br><br>`; html += `<span style="color:#ff3b30">它记住了你。</span><br>`; html += `<span style="color:#666;font-size:12px">点击重新开始，但它不会忘记。</span>`; content.innerHTML = html; end.classList.add('show'); document.title = '它在看着你'; }
+  calculateRank(sec) { const m = sec/60; if (m < 2) return {rank:'C', text:'胆小如鼠，建议不要看恐怖片'}; if (m < 5) return {rank:'B', text:'心理素质一般，容易被吓到'}; if (m < 8) return {rank:'B+', text:'有点定力，但还不够'}; if (m < 12) return {rank:'A', text:'心理素质良好，继续保持'}; if (m < 15) return {rank:'A+', text:'很强，但还能更强'}; if (m < 18) return {rank:'S', text:'心理战神，万中无一'}; return {rank:'SSS', text:'你已经不是人类了，或者...你已经不是原来的你了'}; }
+  handleEffect(line) {
+    const ef = line.effect; if (!ef) return;
+    switch(ef) {
+      case 'red': this.audio.click(); if(navigator.vibrate) navigator.vibrate(50); break;
+      case 'blood': document.body.classList.add('dark-mode'); this.state.isDark = true; this.audio.hum(4000); this.audio.heartbeat(); document.title = '它在看着你'; break;
+      case 'pause3': this.state.isLocked=true; if(this.state.advanceTimer) clearTimeout(this.state.advanceTimer); setTimeout(()=>{ this.state.isLocked=false; this.advance(); }, 3000); break;
+      case 'pause5': this.state.isLocked=true; if(this.state.advanceTimer) clearTimeout(this.state.advanceTimer); setTimeout(()=>{ this.state.isLocked=false; this.advance(); }, 5000); break;
+      case 'withdraw': setTimeout(() => { const msgs = document.querySelectorAll('.msg-bot'); const last = msgs[msgs.length-2]; if (last) { last.style.opacity='0.4'; last.style.textDecoration='line-through'; } }, 1200); break;
+      case 'blurimg': this.showImageMessage('👁️'); break;
+      case 'shadowimg': this.showImageMessage('🚶'); break;
+      case 'shadowimg2': this.showImageMessage('👥'); break;
+      case 'click': this.audio.click(); if(navigator.vibrate) navigator.vibrate([100,50,100]); break;
+      case 'black1': const bs = document.getElementById('black-screen'); document.getElementById('black-text').textContent = ''; bs.classList.add('show'); if(this.state.advanceTimer) clearTimeout(this.state.advanceTimer); setTimeout(() => { bs.classList.remove('show'); this.advance(); }, 900); break;
+      case 'whitenormal': document.body.classList.remove('dark-mode'); document.body.classList.remove('bg-red'); document.getElementById('app').style.background = ''; document.title = '心理韧性深度测评'; break;
+      case 'reset': document.body.classList.remove('bg-red'); break;
+      case 'gradient': document.getElementById('app').style.background = 'linear-gradient(180deg, #111 0%, #1a0a2e 100%)'; break;
+      case 'typewriter': case 'bold': case 'gray': case 'normal': break;
+    }
+  }
+  showBotMessage(text, effect) { const chat = document.getElementById('chat'); const div = document.createElement('div'); div.className = 'msg msg-bot'; if (effect==='red' || effect==='blood') div.classList.add('msg-red'); if (effect==='gray') div.classList.add('msg-gray'); if (effect==='bold') div.classList.add('msg-bold'); if (effect==='typewriter' || effect==='large') div.classList.add('msg-large'); div.textContent = text; chat.appendChild(div); this.scrollToBottom(); }
+  showUserMessage(text) { const chat = document.getElementById('chat'); const div = document.createElement('div'); div.className = 'msg msg-user'; div.textContent = text; chat.appendChild(div); this.scrollToBottom(); }
+  showSystemMessage(text) { const chat = document.getElementById('chat'); const div = document.createElement('div'); div.className = 'msg msg-system'; div.textContent = text; chat.appendChild(div); this.scrollToBottom(); }
+  showImageMessage(emoji) { const chat = document.getElementById('chat'); const div = document.createElement('div'); div.className = 'msg msg-bot msg-img'; div.innerHTML = `<div class="msg-img-inner">${emoji}</div>`; chat.appendChild(div); this.scrollToBottom(); }
+  showTyping() { document.getElementById('typing').style.display='flex'; this.scrollToBottom(); }
+  hideTyping() { document.getElementById('typing').style.display='none'; }
+  showOptions(opts) { const box = document.getElementById('options'); box.innerHTML = ''; opts.forEach((opt,i) => { const btn = document.createElement('button'); btn.className = 'opt-btn'; btn.textContent = opt; btn.onclick = () => this.handleOption(i); box.appendChild(btn); }); }
+  hideOptions() { document.getElementById('options').innerHTML = ''; }
+  scrollToBottom() { const c=document.getElementById('chat'); c.scrollTop=c.scrollHeight; }
+}
+const game = new HorrorGame();
+</script>
+</body>
+</html>
